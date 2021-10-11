@@ -1,0 +1,912 @@
+<!doctype html>
+<html lang="en-us">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Potator</title>
+    <style>
+      .emscripten { padding-right: 0; margin-left: auto; margin-right: auto; display: block; }
+      textarea.emscripten { font-family: monospace; width: 80%; }
+      div.emscripten { text-align: center; }
+      div.emscripten_border { /*border: 1px solid black;*/ }
+      /* the canvas *must not* have any border or padding, or mouse coords will be wrong */
+      canvas.emscripten { border: 0px none; background-color: black; }
+
+      .spinner {
+        height: 50px;
+        width: 50px;
+        margin: 0px auto;
+        -webkit-animation: rotation .8s linear infinite;
+        -moz-animation: rotation .8s linear infinite;
+        -o-animation: rotation .8s linear infinite;
+        animation: rotation 0.8s linear infinite;
+        border-left: 10px solid rgb(0,150,240);
+        border-right: 10px solid rgb(0,150,240);
+        border-bottom: 10px solid rgb(0,150,240);
+        border-top: 10px solid rgb(100,0,200);
+        border-radius: 100%;
+        background-color: rgb(200,100,250);
+      }
+      @-webkit-keyframes rotation {
+        from {-webkit-transform: rotate(0deg);}
+        to {-webkit-transform: rotate(360deg);}
+      }
+      @-moz-keyframes rotation {
+        from {-moz-transform: rotate(0deg);}
+        to {-moz-transform: rotate(360deg);}
+      }
+      @-o-keyframes rotation {
+        from {-o-transform: rotate(0deg);}
+        to {-o-transform: rotate(360deg);}
+      }
+      @keyframes rotation {
+        from {transform: rotate(0deg);}
+        to {transform: rotate(360deg);}
+      }
+
+      body {
+        font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+        margin: 0px;
+      }
+
+      h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+        font-family: inherit;
+        font-weight: 500;
+        line-height: 1.1;
+        color: inherit;
+      }
+
+      .main-button, canvas {
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+        image-rendering: -moz-crisp-edges;
+        image-rendering: -webkit-crisp-edges;
+
+        background-color: inherit;
+      }
+
+      .main-button {
+        width: 48px;
+        height: 36px;
+        box-sizing: content-box;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-origin: content-box;
+        border: 2px solid #aaa;
+        margin: 1px;
+        padding: 3px;
+        cursor: pointer;
+      }
+
+      .main-button:hover {
+        border-color: black;
+      }
+
+      #fileb {
+        display: block;
+        background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAMCAMAAABcOc2zAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAB5QTFRFvALakJCQ2gIFAjraHtoC+MBI8IgAgq7I+Kgw////JqDhkgAAAAp0Uk5T////////////ALLMLM8AAABJSURBVHjaXI5BDoAwDMPC2s3t/z+MADFafLSiJJrRmFqzsbSCQlxijOHuhkl6BDhuZnoT7MQnuEXpoHb8VujHUHaRSo4CeQowALRTBDws+boxAAAAAElFTkSuQmCC');
+      }
+
+      #savestateb {
+        background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAMCAMAAABcOc2zAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAxQTFRFZmZmmZmZAAAA////ugmYcAAAAAR0Uk5T////AEAqqfQAAAA4SURBVHjajIvRCgAgCAO38///OVCLCB+ag9PhFCXoRZ8Bqfvj3EPFUdOweCT0GLOdULMCD5UlwADBvAGarVk1DAAAAABJRU5ErkJggg==');
+      }
+
+      #loadstateb {
+        background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAMCAMAAABcOc2zAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAxQTFRFZmZmmZmZAAAA////ugmYcAAAAAR0Uk5T////AEAqqfQAAAA5SURBVHjafIvRCgAwCAIv+/9/HizbQ2wzwTyQLEl+6N6E0014TH4gss4RaAgxrFB7B84CcZksAQYAwRIBmu1bY5MAAAAASUVORK5CYII=');
+      }
+
+      #muteb {
+        background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAMCAMAAABcOc2zAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAlQTFRFZmZmAAAA////UkbnHwAAAEJJREFUeNp0zgEKACAIA8DN/z86l8swaFDBsUrEE/jk2Q2kl4FkFQSsqDAhvoCMADDsz+tRNKSEKrowBsSdtLMEGAB8ZgExwXIzcQAAAABJRU5ErkJggg==');
+      }
+      #muteab {
+        background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAMCAMAAABcOc2zAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAlQTFRFZmZmAAAA////UkbnHwAAADBJREFUeNpiYEIDDFCaEU2AEU2AEVmAEQJIEWAAAkZ0QxnQBYAi6A5jQBeAA4AAAwCHogFSzpCvUAAAAABJRU5ErkJggg==')
+      }
+
+      #decreaseb {
+        background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAMCAMAAABcOc2zAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAZQTFRFAAAAAAAApWe5zwAAAAJ0Uk5T/wDltzBKAAAAJElEQVR42mJgwACMMABmUUkA1XhkFYwYAiAOfhUYhoIBQIABADFuAHvO4HrHAAAAAElFTkSuQmCC');
+      }
+
+      #increaseb {
+        background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAMCAMAAABcOc2zAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAZQTFRFAAAAAAAApWe5zwAAAAJ0Uk5T/wDltzBKAAAAJUlEQVR42mJgwACMMABmUUkA1XhkFWA1KAIgDn4VGIaCAUCAAQAxAAB51Z56IgAAAABJRU5ErkJggg==');
+      }
+
+      #nextpaletteb {
+        background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAMCAMAAABcOc2zAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAABhQTFRFJEc7uc2rb6Bag71qMWJSABAY3vbNAAAAjQpJGgAAACdJREFUeNpiYIQCJihgYGSDAGYIoI4AAwsEsEIAO3UEoIAdCgACDAAfcgL57TF56gAAAABJRU5ErkJggg==');
+      }
+
+      #fullscreenb {
+        background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAMCAMAAABcOc2zAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAZQTFRFAAAAAAAApWe5zwAAAAJ0Uk5T/wDltzBKAAAAIUlEQVR42mJggABGRgYGOBMZkCXAiAYwBahhC7rTAQIMADvEAJWS8qCXAAAAAElFTkSuQmCC');
+      }
+
+      .page-header {
+        display: inline-block;
+        padding-bottom: 9px;
+        margin: 40px 0 20px;
+        border-bottom: 2px solid #eee;
+      }
+
+      /* https://www.w3schools.com/cSS/css_tooltip.asp */
+      .tooltip {
+        position: relative;
+        display: inline-block;
+      }
+
+      .tooltip .tooltiptext {
+        visibility: hidden;
+        width: 120px;
+        background-color: #444;
+        color: #fff;
+        text-align: center;
+        border-radius: 6px;
+        padding: 5px;
+        position: absolute;
+        z-index: 1;
+        bottom: 110%;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+
+      .tooltip .tooltiptext::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -5px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: #444 transparent transparent transparent;
+      }
+
+      .tooltip:hover .tooltiptext {
+        visibility: visible;
+        transition: visibility 0s linear 0.5s; /* https://stackoverflow.com/q/36242258 */
+      }
+
+      .tooltip .tooltipaudio {
+        visibility: hidden;
+        width: 120px;
+        background-color: rgba(68, 68, 68, 0.6);
+        color: #fff;
+        text-align: center;
+        border-radius: 6px;
+        padding: 6px;
+        position: absolute;
+        z-index: 1;
+        bottom: 100%;
+        left: 50%;
+        transform: rotate(-90deg) translateX(-21px);
+        transform-origin: 0px 20px;
+        height: 40px;
+        box-sizing: border-box;
+      }
+
+      .tooltip:hover .tooltipaudio {
+        visibility: visible;
+      }
+      
+      .tooltipinfo {
+        border: 1px solid black;
+        border-radius: 100%;
+        width: 1em;
+        height: 1em;
+        text-align: center;
+        cursor: help;
+      }
+
+      /* https://www.w3schools.com/howto/howto_js_rangeslider.asp */
+      .slider {
+        -webkit-appearance: none;
+        width: 100%;
+        height: 10px;
+        border-radius: 5px;
+        background: #d3d3d3;
+        outline: none;
+
+        margin: 8px 0;
+      }
+
+      .slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        /*box-sizing: content-box;*/
+
+        background-color: white;
+        width: 24px;
+        height: 24px;
+        border: 0px solid #888;
+        border-radius: 100%;
+        cursor: pointer;
+      }
+
+      .slider::-moz-range-thumb {
+        background-color: white;
+        width: 24px;
+        height: 24px;
+        border: 0px solid #888;
+        border-radius: 100%;
+        cursor: pointer;
+      }
+      .slider::-moz-range-track {
+        background-color: transparent;
+      }
+
+      #ghostslider::-webkit-slider-thumb {
+        background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAMAAADXqc3KAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAxQTFRF////AAAAnJyc////cfZmagAAAAR0Uk5T////AEAqqfQAAABzSURBVHjanJFREgARDEOTuv+dt2ip4sPmo0PeKBWUizBWbNqAeqKaCO6LyQmSPwiyrySA1lys9iMGSNCrDFAtAF4DkD/gfIcsr+rPwjaGTeJzvAJeQDrCK1i+nSGSGJTuOmUCtW+lxYOfmRstMcGTPgEGAKVGBNcv/z1ZAAAAAElFTkSuQmCC');
+      }
+
+      #ghostslider::-moz-range-thumb {
+        background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAMAAADXqc3KAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAxQTFRF////AAAAnJyc////cfZmagAAAAR0Uk5T////AEAqqfQAAABzSURBVHjanJFREgARDEOTuv+dt2ip4sPmo0PeKBWUizBWbNqAeqKaCO6LyQmSPwiyrySA1lys9iMGSNCrDFAtAF4DkD/gfIcsr+rPwjaGTeJzvAJeQDrCK1i+nSGSGJTuOmUCtW+lxYOfmRstMcGTPgEGAKVGBNcv/z1ZAAAAAElFTkSuQmCC');
+      }
+
+      #ghost {
+        box-sizing: border-box;
+        width: 158px;
+        height: 46px;
+        padding: 8px 4px;
+        margin: 1px;
+        border: 2px solid #aaa;
+      }
+      #ghost:hover {
+        border-color: black;
+      }
+
+      /* autohotkey.com */
+      kbd {
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        box-shadow: 0 1px 0 rgba(0,0,0,.2),0 0 0 2px #fff inset;
+        color: #333;
+        display: inline-block;
+        font-family: Consolas,Courier New,monospace;
+        line-height: 1.4em;
+        margin: 0 .1em;
+        margin-top: 0px;
+        margin-bottom: 0px;
+        padding: 0 .5em;
+        text-shadow: 0 1px 0 #fff;
+        white-space: nowrap;
+
+        background-color: white;
+      }
+
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+
+      td, th {
+        border: 1px solid #dddddd;
+        text-align: left;
+        padding: 2px 8px;
+      }
+
+      .ps-bg {
+        display: inline-block;
+        background-color: #484848;
+        border-radius: 100%;
+        width: 20px;
+        height: 20px;
+        position: relative;
+        vertical-align: text-bottom;
+      }
+
+      .ps-square {
+        display: inline-block;
+        border: solid 2px #e398c9;
+        width: 8px;
+        height: 8px;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+
+      .ps-cross {
+        display: inline-block;
+        width: 18px;
+        height: 18px;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(45deg);
+        /* https://stackoverflow.com/a/17359874 */
+        background: linear-gradient(to bottom, transparent 44%,
+                                               #a2abd6 44%,
+                                               #a2abd6 56%,
+                                               transparent 56%),
+                    linear-gradient(to right,  transparent 44%,
+                                               #a2abd6 44%,
+                                               #a2abd6 56%,
+                                               transparent 56%);
+      }
+      .ps-select {
+        display: inline-block;
+        background-color: #484848;
+        border-radius: 2px;
+        width: 20px;
+        height: 12px;
+      }
+
+      .ps-start {
+        display: inline-block;
+        border-radius: 2px;
+        width: 0;
+        height: 0;
+        border-top: 6px solid transparent;
+        border-left: 20px solid #484848;
+        border-bottom: 6px solid transparent;
+      }
+
+      .ps-up, .ps-right, .ps-down, .ps-left {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        background-color: #484848;
+        position: relative;
+        border-top-left-radius: 2px;
+        border-top-right-radius: 2px;
+        transform: translateY(-2px);
+      }
+      .ps-right {
+        transform: rotate(90deg) translateY(-2px);
+        margin: 0 1px 0 2px;
+      }
+      .ps-down {
+        transform: rotate(180deg) translateY(-2px);
+      }
+      .ps-left {
+        transform: rotate(-90deg) translateY(-2px);
+        margin: 0 2px 0 1px;
+      }
+      .ps-up::after, .ps-right::after, .ps-down::after, .ps-left::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -50%;
+        border-width: 6px;
+        border-style: solid;
+        border-color: #484848 transparent transparent transparent;
+      }
+
+      #dropzone {
+        position: fixed;
+        left: 0px;
+        top: 0px;
+        z-index: 666;
+        width: 100%;
+        height: 100%;
+        background-color: rgb(0, 128, 192);
+        opacity: 0.5;
+        display: none;
+      }
+
+      .preview-td {
+        background-color: #111;
+        padding: 0px;
+        width: 1px;
+        text-align: center;
+      }
+      .preview-img {
+        width: 80px;
+        height: 80px;
+        vertical-align: middle;
+      }
+      .preview-img:hover {
+        transform: scale(2) translateX(-20px);
+      }
+    </style>
+  </head>
+  <body>
+    <div style="text-align: center;">
+      <h1 class="page-header">Potator - Watara Supervision Emulator</h1>
+    </div>
+    <div class="emscripten_border" style="position: relative; background: #111;" ondblclick="toggleFullscreen()">
+      <figure style="position: absolute; top: 50%; left: 50%; margin: 0; transform: translate(-50%, -50%);" id="spinner"><div class="spinner"></div></figure>
+      <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" width="640" height="640"></canvas>
+    </div>
+    <div class="emscripten" style="text-align: left; width: 640px; margin: 3px auto;">
+      <div class="tooltip" style="vertical-align: top;">
+        <label>
+          <span id="fileb" class="main-button"></span>
+          <input type="file" onchange="onChange(event)" accept=".bin, .sv, .ws" style="display: none;">
+        </label>
+        <span class="tooltiptext">Load ROM</span>
+      </div><!-- delete space
+   --><div class="tooltip" style="vertical-align: top;">
+        <button id="savestateb" class="main-button" onclick="Module.ccall('SaveState', 'void', ['void'])"></button>
+        <span class="tooltiptext">Save state <kbd>1</kbd></span>
+      </div><!-- delete space
+   --><div class="tooltip" style="vertical-align: top;">
+        <button id="loadstateb" class="main-button" onclick="Module.ccall('LoadState', 'void', ['void'])"></button>
+        <span class="tooltiptext">Load state <kbd>2</kbd></span>
+      </div><!-- delete space
+   --><div class="tooltip" id="ghost">
+        <input id="ghostslider" class="slider" type="range" min="0" max="8" value="0" step="1" autocomplete="off">
+        <span class="tooltiptext" style="width: 200px;">Ghosting (reduce flickering)</span>
+      </div>
+      <div style="float: right;">
+        <div class="tooltip">
+          <button id="muteb" class="main-button" onclick="this.id = (this.id=='muteb'?'muteab':'muteb'); Module.ccall('MuteAudio', 'void', ['void'])"></button>
+          <span class="tooltipaudio">
+            <input id="volumeslider" class="slider" type="range" min="0" max="128" value="128" step="1" autocomplete="off">
+          </span>
+        </div><!-- delete space
+     --><div class="tooltip">
+          <button id="nextpaletteb" class="main-button" onclick="Module.ccall('NextPalette', 'void', ['void'])"></button>
+          <span class="tooltiptext">Next palette <kbd>P</kbd></span>
+        </div><!-- delete space
+     --><div class="tooltip">
+          <button id="decreaseb" class="main-button" onclick="Module.ccall('DecreaseWindowSize', 'void', ['void'])"></button>
+          <span class="tooltiptext">Decrease window size <kbd>-_</kbd></span>
+        </div><!-- delete space
+     --><div class="tooltip">
+          <button id="increaseb" class="main-button" onclick="Module.ccall('IncreaseWindowSize', 'void', ['void'])"></button>
+          <span class="tooltiptext">Increase window size <kbd>=+</kbd></span>
+        </div><!-- delete space
+     --><div class="tooltip">
+          <button id="fullscreenb" class="main-button" onclick="Module.requestFullscreen(true, false)"></button>
+          <span class="tooltiptext">Fullscreen</span>
+        </div>
+      </div>
+
+      <h2>Controls</h2>
+      <table>
+        <tr>
+          <th>Action</th>
+          <th>Keyboard</th>
+          <th>Gamepad <span class="tooltip tooltipinfo">!<span class="tooltiptext" style="width: 360px; font-weight: normal;">Some gamepads have the wrong button mapping in Firefox.</span></span></th>
+        </tr>
+        <tr>
+          <td>Right</td>
+          <td><span class="keyName">Arrow Right</span><button style="float: right;" onclick="setKey(this, 0)">Change</button></td>
+          <td><span class="ps-right"></span>, Axis LeftX+</td>
+        </tr>
+        <tr>
+          <td>Left</td>
+          <td><span class="keyName">Arrow Left</span><button style="float: right;" onclick="setKey(this, 1)">Change</button></td>
+          <td><span class="ps-left"></span>, Axis LeftX-</td>
+        </tr>
+        <tr>
+          <td>Down</td>
+          <td><span class="keyName">Arrow Down</span><button style="float: right;" onclick="setKey(this, 2)">Change</button></td>
+          <td><span class="ps-down"></span>, Axis LeftY+</td>
+        </tr>
+        <tr>
+          <td>Up</td>
+          <td><span class="keyName">Arrow Up</span><button style="float: right;" onclick="setKey(this, 3)">Change</button></td>
+          <td><span class="ps-up"></span>, Axis LeftY-</td>
+        </tr>
+        <tr>
+          <td>B</td>
+          <td><span class="keyName">Key X</span><button style="float: right;" onclick="setKey(this, 4)">Change</button></td>
+          <td><span class="ps-bg" style="text-align: center;"><span style="color: #91c85c; vertical-align: middle;">A</span></span> / <span class="ps-bg"><span class="ps-cross"></span></span></td>
+        </tr>
+        <tr>
+          <td>A</td>
+          <td><span class="keyName">Key C</span><button style="float: right;" onclick="setKey(this, 5)">Change</button></td>
+          <td><span class="ps-bg" style="text-align: center;"><span style="color: #0098d9; vertical-align: middle;">X</span></span> / <span class="ps-bg"><span class="ps-square"></span></span></td>
+        </tr>
+        <tr>
+          <td>Select</td>
+          <td><span class="keyName">Key Z</span><button style="float: right;" onclick="setKey(this, 6)">Change</button></td>
+          <td>Back / <span class="ps-select"></span></td>
+        </tr>
+        <tr>
+          <td>Start</td>
+          <td><span class="keyName">Space</span><button style="float: right;" onclick="setKey(this, 7)">Change</button></td>
+          <td>Start / <span class="ps-start"></span></td>
+        </tr>
+        <tr>
+          <td>Fullscreen</td>
+          <td>Mouse Double-Click<span class="keyName"></span></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>Reset</td>
+          <td><span class="keyName">Tab</span><button style="float: right;" onclick="setKey(this, 9)">Change</button></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>Save state</td>
+          <td><span class="keyName">Digit 1</span><button style="float: right;" onclick="setKey(this, 10)">Change</button></td>
+          <td>Left bumper / L1</td>
+        </tr>
+        <tr>
+          <td>Load state</td>
+          <td><span class="keyName">Digit 2</span><button style="float: right;" onclick="setKey(this, 11)">Change</button></td>
+          <td>Right bumper/ R1</td>
+        </tr>
+        <tr>
+          <td>Next palette</td>
+          <td><span class="keyName">Key P</span><button style="float: right;" onclick="setKey(this, 12)">Change</button></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>Window size -</td>
+          <td><span class="keyName">Minus</span><button style="float: right;" onclick="setKey(this, 13)">Change</button></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>Window size +</td>
+          <td><span class="keyName">Equal</span><button style="float: right;" onclick="setKey(this, 14)">Change</button></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>Ghosting -</td>
+          <td><span class="keyName">Bracket Left</span><button style="float: right;" onclick="setKey(this, 15)">Change</button></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>Ghosting +</td>
+          <td><span class="keyName">Bracket Right</span><button style="float: right;" onclick="setKey(this, 16)">Change</button></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>Mute</td>
+          <td><span class="keyName">Key M</span><button style="float: right;" onclick="setKey(this, 17)">Change</button></td>
+          <td></td>
+        </tr>
+      </table>
+
+      <h2>Savestates <span class="tooltip tooltipinfo" style="font-size: 0.7em;"><span style="font-weight: bolder;">!</span><span class="tooltiptext" style="width: 360px">The savestates exist in-memory. They are lost when the page is reloaded.</span></span></h2>
+      <div style="margin: 10px auto;">
+        <button onclick="refreshSavestates()">Refresh</button>
+        <div style="display: inline;">
+          <button onclick="this.nextElementSibling.click()">Upload</button>
+          <label>
+            <input type="file" onchange="uploadSavestate(event)" style="display: none;">
+          </label>
+        </div>
+        <!-- Lost preview-img's hover -->
+        <div style="position: absolute; height: 10px; width: 80px; z-index: 1;"></div>
+      </div>
+      <table><tbody id="savestates"></tbody></table>
+
+      <h2>Information</h2>
+      <p>Chrome <a href="https://blog.google/products/chrome/improving-autoplay-chrome/">blocks audio autoplay</a>. Click on game view (canvas) or press any key.</p>
+      <p>Source code: <a href="https://github.com/infval/potator">GitHub</a>.</p>
+    </div>
+    <div class="emscripten" id="status" style="position: fixed; top: 0px; background-color: #eee; padding: 8px;">Downloading...</div>
+    <div class="emscripten"><progress value="0" max="100" id="progress" style="display: none;"></progress></div>
+    <textarea class="emscripten" id="output" rows="8" style="display: none;"></textarea>
+
+    <script>
+      'use strict';
+      var statusElement = document.getElementById('status');
+      var progressElement = document.getElementById('progress');
+      var spinnerElement = document.getElementById('spinner');
+
+      var Module = {
+        preRun: [],
+        postRun: [],
+        print: (function() {
+          var element = document.getElementById('output');
+          if (element) element.value = ''; // clear browser cache
+          return function(text) {
+            if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+            // These replacements are necessary if you render to raw HTML
+            //text = text.replace(/&/g, "&amp;");
+            //text = text.replace(/</g, "&lt;");
+            //text = text.replace(/>/g, "&gt;");
+            //text = text.replace('\n', '<br>', 'g');
+            console.log(text);
+            if (element) {
+              element.value += text + "\n";
+              element.scrollTop = element.scrollHeight; // focus on bottom
+            }
+          };
+        })(),
+        printErr: function(text) {
+          if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+          if (0) { // XXX disabled for safety typeof dump == 'function') {
+            dump(text + '\n'); // fast, straight to the real console
+          } else {
+            console.error(text);
+          }
+        },
+        canvas: (function() {
+          var canvas = document.getElementById('canvas');
+
+          // As a default initial behavior, pop up an alert when webgl context is lost. To make your
+          // application robust, you may want to override this behavior before shipping!
+          // See http://www.khronos.org/registry/webgl/specs/latest/1.0/#5.15.2
+          canvas.addEventListener("webglcontextlost", function(e) { alert('WebGL context lost. You will need to reload the page.'); e.preventDefault(); }, false);
+
+          return canvas;
+        })(),
+        setStatus: function(text) {
+          if (!Module.setStatus.last) Module.setStatus.last = { time: Date.now(), text: '' };
+          if (text === Module.setStatus.last.text) return;
+          var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
+          var now = Date.now();
+          if (m && now - Module.setStatus.last.time < 30) return; // if this is a progress update, skip it if too soon
+          Module.setStatus.last.time = now;
+          Module.setStatus.last.text = text;
+          if (m) {
+            text = m[1];
+            progressElement.value = parseInt(m[2])*100;
+            progressElement.max = parseInt(m[4])*100;
+            progressElement.hidden = false;
+            spinnerElement.hidden = false;
+          } else {
+            progressElement.value = null;
+            progressElement.max = null;
+            progressElement.hidden = true;
+            if (!text) {
+              spinnerElement.style.display = 'none';
+              statusElement.style.display = 'none';
+            }
+          }
+          statusElement.innerHTML = text;
+        },
+        totalDependencies: 0,
+        monitorRunDependencies: function(left) {
+          this.totalDependencies = Math.max(this.totalDependencies, left);
+          Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies-left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
+        }
+      };
+      Module.setStatus('Downloading...');
+      window.onerror = function() {
+        Module.setStatus('Exception thrown, see JavaScript console');
+        spinnerElement.style.display = 'none';
+        Module.setStatus = function(text) {
+          if (text) Module.printErr('[post-exception status] ' + text);
+        };
+      };
+    </script>
+
+    <div id="dropzone"></div>
+
+    <script>
+    'use strict';
+
+    function onChange(event) {
+      handleFiles(event.target.files);
+    }
+    function handleFiles(files) {
+      var file = files[0];
+      var reader = new FileReader();
+      reader.onload = function(event) {
+        //var buffer = Module._malloc(event.target.result.byteLength);
+        //Module.writeArrayToMemory(new Uint8Array(event.target.result), buffer);
+        //Module.ccall('UploadROM', 'void', ['number', 'number'], [buffer, event.target.result.byteLength]);
+        //Module._free(buffer);
+        var arr = new Uint8Array(event.target.result);
+        Module.ccall('UploadROM', 'void', ['array', 'number', 'string'], [arr, arr.length, file.name]);
+      };
+      reader.readAsArrayBuffer(file);
+    }
+    var dropzone = document.getElementById("dropzone");
+    window.addEventListener("dragover", dragover, false);
+    dropzone.addEventListener("dragleave", dragleave, false);
+    dropzone.addEventListener("drop", drop, false);
+    function dragover(e) {
+      e.stopPropagation();
+      e.preventDefault();
+      if (e.target.id != "dropzone") {
+        dropzone.style.display = "block";
+      }
+    }
+    function dragleave(e) {
+      e.stopPropagation();
+      e.preventDefault();
+      if (e.target.id == "dropzone") {
+        dropzone.style.display = "none";
+      }
+    }
+    function drop(e) {
+      e.stopPropagation();
+      e.preventDefault();
+      dropzone.style.display = "none";
+      handleFiles(e.dataTransfer.files);
+    }
+
+    function createSlider(slider, oninput) {
+      slider.addEventListener("input", oninput, false);
+      slider.addEventListener("mouseup", (e) => {
+        e.target.blur(); // FIX (Firefox), https://github.com/emscripten-ports/SDL2/issues/41
+      }, false);
+    }
+    createSlider(document.getElementById("volumeslider"),
+      (e) => { Module.ccall('SetVolume', 'void', ['number'], [e.target.value]); });
+    createSlider(document.getElementById("ghostslider"),
+      (e) => { Module.ccall('SetGhosting', 'void', ['number'], [e.target.value]); });
+
+    var newButtonId = -1;
+    var ghostSlider = document.getElementById("ghostslider");
+    var muteButton = document.getElementById("muteb");
+    var keyCodes = [].map.call(document.getElementsByClassName("keyName"), (e) => e.textContent.replace(/ /g, ''));
+    document.addEventListener("keydown", (e) => {
+      switch (e.code) {
+      case keyCodes[15]:
+        ghostSlider.value -= 1;
+        break;
+      case keyCodes[16]:
+        ghostSlider.value -= -1;
+        break;
+      case keyCodes[17]:
+        muteButton.id = (muteButton.id == 'muteb' ? 'muteab' : 'muteb');
+        break;
+      }
+
+      endSetKey(e);
+    });
+    function setKey(element, buttonId) {
+      if (newButtonId == -1) {
+        element.textContent = "Press key";
+        newButtonId = buttonId;
+        Module.ccall('SetKey', 'void', ['int'], [newButtonId]);
+
+        pauseAudio(1);
+      }
+    }
+    function endSetKey(keyboardEvent) {
+      if (newButtonId != -1) {
+        let keyNames = document.getElementsByClassName("keyName");
+        if (keyboardEvent && keyboardEvent.code != "Escape") {
+          keyCodes[newButtonId] = keyboardEvent.code;
+          let newKeyName = keyboardEvent.code.replace(/([a-z])([\dA-Z])/g, '$1 $2');
+          keyNames[newButtonId].textContent = newKeyName;
+        }
+        keyNames[newButtonId].nextElementSibling.textContent = "Change";
+        newButtonId = -1;
+
+        if (keyboardEvent) pauseAudio(0);
+      }
+    }
+
+    window.addEventListener("blur", function() {
+      pauseAudio(1);
+      endSetKey();
+    }, false);
+    window.addEventListener("focus", function() {
+      pauseAudio(0);
+    }, false);
+
+    // FIX (Chrome, ...?), project.js -> ASM_CONSTS,
+    // https://github.com/emscripten-ports/SDL2/blob/master/src/audio/emscripten/SDL_emscriptenaudio.c
+    function pauseAudio(on) {
+      if (typeof Module === 'undefined') return;
+      let moduleSDL2 = Module.SDL2;
+      if (typeof moduleSDL2 === 'undefined' && typeof SDL2 !== 'undefined')
+        moduleSDL2 = SDL2; // Old emscripten
+      else
+        return;
+      //if (typeof Module === 'undefined'
+      //  || typeof Module.SDL2 === 'undefined'
+      //  || typeof Module.SDL2.audio === 'undefined'
+      //  || typeof Module.SDL2.audioContext === 'undefined')
+      //  return;
+      if (on) {
+        moduleSDL2.audio.scriptProcessorNode.disconnect();
+      }
+      else {
+        moduleSDL2.audio.scriptProcessorNode['connect'](moduleSDL2.audioContext['destination']);
+      }
+    }
+
+    // Work-around chromium autoplay policy
+    // https://github.com/emscripten-core/emscripten/issues/6511
+    function resumeAudio(e) {
+      if (typeof Module === 'undefined') return;
+      let moduleSDL2 = Module.SDL2;
+      if (typeof moduleSDL2 === 'undefined' && typeof SDL2 !== 'undefined')
+        moduleSDL2 = SDL2; // Old emscripten
+      else
+        return;
+      //if (typeof Module === 'undefined'
+      //  || typeof Module.SDL2 === 'undefined'
+      //  || typeof Module.SDL2.audioContext === 'undefined')
+      //  return;
+      if (moduleSDL2.audioContext.state == 'suspended') {
+        moduleSDL2.audioContext.resume();
+      }
+      if (moduleSDL2.audioContext.state == 'running') {
+        document.getElementById('canvas').removeEventListener('click', resumeAudio);
+        document.removeEventListener('keydown', resumeAudio);
+      }
+    }
+    document.getElementById('canvas').addEventListener('click', resumeAudio);
+    document.addEventListener('keydown', resumeAudio);
+
+    function refreshSavestates() {
+      var fileNames = FS.readdir(".").filter((e) => e.search(/\.svst$/) != -1);
+      var ss = document.getElementById("savestates");
+      ss.innerHTML = fileNames.map((e) =>
+       '<tr>\
+          <td>\
+          ' + e + '<button onclick="saveFile(\'' + e.replace(/'/g, "\\'") + '\')" style="float: right;">Download</button>\
+          </td>\
+        </tr>'
+      ).join('');
+
+      for (let i = 0; i < ss.children.length; i++) {
+        let telem = document.createElement('td');
+        let image = document.createElement('img');
+        telem.setAttribute("class", "preview-td");
+        image.setAttribute("class", "preview-img");
+        drawPreview(fileNames[i], image);
+        telem.appendChild(image);
+        ss.children[i].insertBefore(telem, ss.children[i].firstChild);
+      }
+    }
+    function saveFile(fileName) {
+      saveAs(new Blob([FS.readFile(fileName)], {type: 'application/octet-stream'}), fileName);
+    }
+    // https://stackoverflow.com/q/23451726
+    function saveAs(blob, fileName) {
+      var url = window.URL.createObjectURL(blob);
+
+      var anchorElem = document.createElement("a");
+      anchorElem.style = "display: none";
+      anchorElem.href = url;
+      anchorElem.download = fileName;
+
+      document.body.appendChild(anchorElem);
+      anchorElem.click();
+
+      document.body.removeChild(anchorElem);
+
+      // On Edge, revokeObjectURL should be called only after
+      // a.click() has completed, atleast on EdgeHTML 15.15048
+      setTimeout(function() {
+        window.URL.revokeObjectURL(url);
+      }, 1000);
+    }
+    function uploadSavestate(event) {
+      var file = event.target.files[0];
+      var reader = new FileReader();
+      reader.onload = function(event) {
+        FS.writeFile(file.name, new Uint8Array(event.target.result));
+        refreshSavestates();
+      };
+      reader.readAsArrayBuffer(file);
+    }
+    function drawPreview(fileName, dstImage) {
+      const WIDTH = 160, HEIGHT = 160;
+      function setPixel(imageData, x, y, r, g, b) {
+        var i = (x + y * d.width) * 4;
+        imageData.data[i+0] = r;
+        imageData.data[i+1] = g;
+        imageData.data[i+2] = b;
+        imageData.data[i+3] = 255;
+      }
+      function setPixelPalette(imageData, x, y, index) {
+        const c = [240, 160, 80, 0];
+        setPixel(imageData, x, y, c[index], c[index], c[index]);
+      }
+      var canvas = document.getElementById('canvas-preview');
+      var ctx = canvas.getContext('2d');
+      var d = ctx.createImageData(WIDTH, HEIGHT);
+      var f = FS.readFile(fileName);
+      var startRegs = 0;
+      var startUpperRam = startRegs + 0x2000 * 2;
+      var startVRAM = startUpperRam + f[startRegs + 2] / 4 + f[startRegs + 3] * 0x30;
+      for (let y = 0; y < HEIGHT; y++) {
+        for (let x = 0; x < WIDTH / 4; x++) {
+          let b = f[startVRAM + y*0x30 + x];
+          setPixelPalette(d, x*4 + 0, y, (b >> 0)&3);
+          setPixelPalette(d, x*4 + 1, y, (b >> 2)&3);
+          setPixelPalette(d, x*4 + 2, y, (b >> 4)&3);
+          setPixelPalette(d, x*4 + 3, y, (b >> 6)&3);
+        }
+      }
+      ctx.putImageData(d, 0, 0);
+
+      dstImage.src = canvas.toDataURL();
+    }
+
+    function toggleFullscreen() {
+      if (Browser.isFullscreen)
+        Module.canvas.exitFullscreen();
+      else
+        Module.requestFullscreen(true, false);
+    }
+    </script>
+    <canvas id="canvas-preview" width="160" height="160" style="border: 1px solid black; position: fixed; right: 0px; top: 0px; display: none;"></canvas>
+
+    <div style="height: 64px; margin-top: 32px; background-color: #fcfcfc; border-top: 2px solid #eee;">
+    </div>
+    {{{ SCRIPT }}}
+  </body>
+</html>

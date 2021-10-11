@@ -62,8 +62,7 @@ void graphics_paint(void) {
 			unsigned short *buffer_mem=(buffer_flip+((y>>16)*SYSVID_WIDTH));
 			W=320; x=0;
 			do {
-				unsigned short value = (((buffer_mem[x>>16]) & 0x7FE0) << 1) | ((buffer_mem[x>>16]) & 0x001F);
-				*buffer_scr++=value;
+				*buffer_scr++=buffer_mem[x>>16];
 				x+=ix;
 			} while (--W);
 			y+=iy;
@@ -85,8 +84,7 @@ void graphics_paint(void) {
 			unsigned short *buffer_mem=(buffer_flip+((y>>16)*SYSVID_WIDTH));
 			W=SYSVID_WIDTH; x=((actualScreen->w - SYSVID_WIDTH)/2);
 			do {
-				unsigned short value = (((buffer_mem[x>>16]) & 0x7FE0) << 1) | ((buffer_mem[x>>16]) & 0x001F);
-				*buffer_scr++=value;
+				*buffer_scr++=buffer_mem[x>>16];
 				x+=ix;
 			} while (--W);
 			y+=iy;
@@ -147,14 +145,13 @@ void initSDL(void) {
 	SDL_InitSubSystem(SDL_INIT_JOYSTICK);
 	SDL_JoystickEventState(SDL_ENABLE);
 	stick = SDL_JoystickOpen(0);
-	
-	// Init sound
-	Ainit();
+}
+
+uint16 mapRGB(uint8 r, uint8 g, uint8 b) {
+	return PIX_TO_RGB(actualScreen->format, r, g, b);
 }
 
 unsigned char potatorLoadROM(char* filename) {
-	unsigned int length;
-
 	if (rom_buffer != NULL)
 		free(rom_buffer);
 
@@ -168,6 +165,13 @@ unsigned char potatorLoadROM(char* filename) {
 		fclose(romfile);
 
 		supervision_load(rom_buffer, rom_size);
+		supervision_set_map_func(mapRGB);
+		switch (GameConf.m_Color) {
+			case 0: supervision_set_color_scheme(SV_COLOR_SCHEME_DEFAULT); break;
+			case 1: supervision_set_color_scheme(SV_COLOR_SCHEME_AMBER); break;
+			case 2: supervision_set_color_scheme(SV_COLOR_SCHEME_GREEN); break;
+			case 3: supervision_set_color_scheme(SV_COLOR_SCHEME_BLUE); break;
+		}
 
 		// Compute game CRC
 		gameCRC = crc32(0, rom_buffer, rom_size);
@@ -179,12 +183,11 @@ unsigned char potatorLoadROM(char* filename) {
 }
 
 int main(int argc, char *argv[]) {
-	unsigned int index;
 	double period;
 
 	// Get init file directory & name
 	gethomedir(current_conf_app, "potator");
-	sprintf(current_conf_app,"%s//potator.cfg",current_conf_app);
+	strncat(current_conf_app, "//potator.cfg", sizeof(current_conf_app) - strlen(current_conf_app) - 1);
 	
 	// Init graphics & sound
 	initSDL();
@@ -193,7 +196,7 @@ int main(int argc, char *argv[]) {
 
     //load rom file via args if a rom path is supplied
 	if(argc > 1) {
-		strcpy(gameName,argv[1]);
+		strncpy(gameName, argv[1], sizeof(gameName) - 1);
 		m_Flag = GF_GAMEINIT;
 	}
 
@@ -230,7 +233,7 @@ int main(int argc, char *argv[]) {
 					SDL_PauseAudio(0);
 				}
 				else {
-					fprintf(stderr,"can't load %s : %s",gameName,SDL_GetError()); fflush(stderr);
+					fprintf(stderr,"cant't load %s : %s",gameName,SDL_GetError()); fflush(stderr);
 					m_Flag = GF_GAMEQUIT;
 				}
 				break;
@@ -244,7 +247,7 @@ int main(int argc, char *argv[]) {
 				}
 
 				// Manage keys
-				controls_state = 0;				
+				unsigned char controls_state = 0;
 				
 				if ( (keys[SDLK_UP] == SDL_PRESSED) )  controls_state |=  keyCoresp[GameConf.OD_Joy[0]]; // UP
 				if ( (keys[SDLK_DOWN] == SDL_PRESSED) ) controls_state |=  keyCoresp[GameConf.OD_Joy[1]]; // DOWN
@@ -263,16 +266,16 @@ int main(int argc, char *argv[]) {
 				}
 				else if ( (keys[SDLK_RETURN] == SDL_PRESSED) ) controls_state |=  keyCoresp[GameConf.OD_Joy[10]]; // START
 				else if ( (keys[SDLK_ESCAPE] == SDL_PRESSED) )  controls_state |=  keyCoresp[GameConf.OD_Joy[11]]; // SELECT
+				supervision_set_input(controls_state);
 
 				// Update emulation
-				supervision_exec((unsigned short *) XBuf,1);sound_decrement();
+				supervision_exec(XBuf, FALSE);
 				graphics_paint();
-		 
+
 				nextTick += interval;
 				break;
 		}
 	}
-	Aclose();
 	
 	// Free memory
 	SDL_FreeSurface(layerbackgrey);

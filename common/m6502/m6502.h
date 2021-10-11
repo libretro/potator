@@ -8,44 +8,48 @@
 /** Copyright (C) Marat Fayzullin 1996                      **/
 /**               Alex Krasivsky  1996                      **/
 /**     You are not allowed to distribute this software     **/
-/**     commercially. Please, notify me, if you make any    **/   
+/**     commercially. Please, notify me, if you make any    **/
 /**     changes to this file.                               **/
 /*************************************************************/
 #ifndef M6502_H
 #define M6502_H
-
-#include "../types.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* Compilation options:       */
-//#define FAST_RDOP	           /* Separate Op6502()/Rd6502() */
-/* #define DEBUG */            /* Compile debugging version  */
+/* #define FAST_RDOP */        /* Separate Op6502()/Rd6502() */
+/* #define DEBUG2 */           /* Compile debugging version  */
 #define LSB_FIRST              /* Compile for low-endian CPU */
 
                                /* Loop6502() returns:        */
 #define INT_NONE  0            /* No interrupt required      */
-#define INT_IRQ	  1            /* Standard IRQ interrupt     */
-#define INT_NMI	  2            /* Non-maskable interrupt     */
+#define INT_IRQ   1            /* Standard IRQ interrupt     */
+#define INT_NMI   2            /* Non-maskable interrupt     */
 #define INT_QUIT  3            /* Exit the emulation         */
 
                                /* 6502 status flags:         */
-#define	C_FLAG	  0x01         /* 1: Carry occured           */
-#define	Z_FLAG	  0x02         /* 1: Result is zero          */
-#define	I_FLAG	  0x04         /* 1: Interrupts disabled     */
-#define	D_FLAG	  0x08         /* 1: Decimal mode            */
-#define	B_FLAG	  0x10         /* Break [0 on stk after int] */
-#define	R_FLAG	  0x20         /* Always 1                   */
-#define	V_FLAG	  0x40         /* 1: Overflow occured        */
-#define	N_FLAG	  0x80         /* 1: Result is negative      */
+#define C_FLAG    0x01         /* 1: Carry occured           */
+#define Z_FLAG    0x02         /* 1: Result is zero          */
+#define I_FLAG    0x04         /* 1: Interrupts disabled     */
+#define D_FLAG    0x08         /* 1: Decimal mode            */
+#define B_FLAG    0x10         /* Break [0 on stk after int] */
+#define R_FLAG    0x20         /* Always 1                   */
+#define V_FLAG    0x40         /* 1: Overflow occured        */
+#define N_FLAG    0x80         /* 1: Result is negative      */
 
 /** Simple Datatypes *****************************************/
 /** NOTICE: sizeof(byte)=1 and sizeof(word)=2               **/
 /*************************************************************/
-//typedef unsigned char byte;
-typedef unsigned short word;
+#ifndef BYTE_TYPE_DEFINED
+#define BYTE_TYPE_DEFINED
+    typedef unsigned char byte;
+#endif
+#ifndef WORD_TYPE_DEFINED
+#define WORD_TYPE_DEFINED
+    typedef unsigned short word;
+#endif
 typedef signed char offset;
 
 /** Structured Datatypes *************************************/
@@ -55,27 +59,24 @@ typedef signed char offset;
 typedef union
 {
 #ifdef LSB_FIRST
-  struct { byte l,h; } B;
+    struct { byte l, h; } B;
 #else
-  struct { byte h,l; } B;
+    struct { byte h, l; } B;
 #endif
-  word W;
+    word W;
 } pair;
 
 typedef struct
 {
-  byte A,P,X,Y,S;     /* CPU registers and program counter   */
-  pair PC;
+    byte A, P, X, Y, S;  /* CPU registers and program counter   */
+    pair PC;
 
-  int IPeriod,ICount; /* Set IPeriod to number of CPU cycles */
-                      /* between calls to Loop6502()         */
-  byte IRequest;      /* Set to the INT_IRQ when pending IRQ */
-  byte AfterCLI;      /* Private, don't touch                */
-  int IBackup;        /* Private, don't touch                */
-  void *User;         /* Arbitrary user data (ID,RAM*,etc.)  */
-  byte TrapBadOps;    /* Set to 1 to warn of illegal opcodes */
-  word Trap;          /* Set Trap to address to trace from   */
-  byte Trace;         /* Set Trace=1 to start tracing        */
+    int IPeriod, ICount; /* Set IPeriod to number of CPU cycles */
+                         /* between calls to Loop6502()         */
+    byte IRequest;       /* Set to the INT_IRQ when pending IRQ */
+    byte AfterCLI;       /* Private, don't touch                */
+    int IBackup;         /* Private, don't touch                */
+    /* void *User; */    /* Arbitrary user data (ID,RAM*,etc.)  */
 } M6502;
 
 /** Reset6502() **********************************************/
@@ -85,19 +86,12 @@ typedef struct
 /*************************************************************/
 void Reset6502(register M6502 *R);
 
-/** Exec6502() ***********************************************/
-/** This function will execute a single 6502 opcode. It     **/
-/** will then return next PC, and current register values   **/
-/** in R.                                                   **/
-/*************************************************************/
-word Exec6502(register M6502 *R);
-
 /** Int6502() ************************************************/
 /** This function will generate interrupt of a given type.  **/
 /** INT_NMI will cause a non-maskable interrupt. INT_IRQ    **/
 /** will cause a normal interrupt, unless I_FLAG set in R.  **/
 /*************************************************************/
-void Int6502(register M6502 *R,register byte Type);
+void Int6502(register M6502 *R, register byte Type);
 
 /** Run6502() ************************************************/
 /** This function will run 6502 code until Loop6502() call  **/
@@ -113,17 +107,10 @@ word Run6502(register M6502 *R);
 /** checks can be skipped to make it fast. It is only       **/
 /** required if there is a #define FAST_RDOP.               **/
 /************************************ TO BE WRITTEN BY USER **/
-void Wr6502(register word Addr,register byte Value);
+void Wr6502(register word Addr, register byte Value);
 byte Rd6502(register word Addr);
 byte Op6502(register word Addr);
 
-/** Debug6502() **********************************************/
-/** This function should exist if DEBUG is #defined. When   **/
-/** Trace!=0, it is called after each command executed by   **/
-/** the CPU, and given the 6502 registers. Emulation exits  **/
-/** if Debug6502() returns 0.                               **/
-/*************************************************************/
-byte Debug6502(register M6502 *R);
 
 /** Loop6502() ***********************************************/
 /** 6502 emulation calls this function periodically to      **/

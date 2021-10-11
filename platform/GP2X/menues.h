@@ -54,8 +54,8 @@ typedef struct
 } FileEntry, *pFileEntry;
 
 extern FileEntry FileList[1024];
-extern u32 fileCounter;
-extern char *romname;
+extern uint32 fileCounter;
+extern const char *romname;
 
 typedef struct {
 	char lastRomDir[MAXPATHLEN];

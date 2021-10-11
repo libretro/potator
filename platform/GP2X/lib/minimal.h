@@ -1,11 +1,13 @@
 /* GP2X minimal library v0.C
-   Written by rlyeh, (c) 2005-2006.
+   Written by rlyeh, (c) 2005-2007.
 
    Please check readme for licensing and other conditions. */
 
 #ifndef __MINIMAL_H__
 #define __MINIMAL_H__
 
+#include <limits.h>
+#include <dirent.h>
 #include <math.h>
 #include <fcntl.h>
 #include <pthread.h>
@@ -25,7 +27,7 @@
 #include <linux/joystick.h>
 
 
-#define MINILIB_VERSION  "GP2X minimal library (internal beta v0.C) by rlyeh, (c) 2005-2006."
+#define MINILIB_VERSION  "GP2X minimal library v0.C by rlyeh, (c) 2005-2007."
 
 
 #ifndef GP2X_DEBUG_LEVEL
@@ -38,9 +40,9 @@
 #define GP2X_PROFILE 1
 #endif
 
-#define gp2x_debug(level, func)   if(GP2X_DEBUG_LEVEL & level) { func } 
+#define gp2x_debug(level, ...)   if(GP2X_DEBUG_LEVEL & level) { __VA_ARGS__ ;} 
 
-#define gp2x_profile(func) \
+#define gp2x_profile( ... ) \
  if(GP2X_PROFILE) {                                                                          \
  static gp2x_profiles *prf = NULL;                                                           \
                                                                                              \
@@ -50,16 +52,22 @@
                                                                                              \
  prf->calls++;                                                                               \
  prf->time -= gp2x_memregl[0x0A00>>2];                                                       \
- { func ;}                                                                                   \
- prf->time += gp2x_memregl[0x0A00>>2]; } else { func ;}
-
+ { __VA_ARGS__ ;}                                                                                   \
+ prf->time += gp2x_memregl[0x0A00>>2]; } else { __VA_ARGS__ ;}
+ 
+#define isUp(x)    
+#define isDown(x)  
+#define isPress(x) 
 
 enum  { RECT_RGB8=1, RECT_RGB16=2, RECT_YUV=4 };
 
 enum  { GP2X_UP=(0x1L<<0),    GP2X_LEFT=(0x1L<<2),    GP2X_DOWN=(0x1L<<4), GP2X_RIGHT=(0x1L<<6),
         GP2X_START=(1L<<8),   GP2X_SELECT=(1L<<9),    GP2X_L=(1L<<10),     GP2X_R=(1L<<11),
         GP2X_A=(1L<<12),      GP2X_B=(1L<<13),        GP2X_X=(1L<<14),     GP2X_Y=(1L<<15),
-        GP2X_VOL_UP=(1L<<23), GP2X_VOL_DOWN=(1L<<22), GP2X_PUSH=(1L<<27) };
+        GP2X_VOL_UP=(1L<<23), GP2X_VOL_DOWN=(1L<<22), GP2X_PUSH=(1L<<27),  
+        GP2X_HOME=(1L<<8),    GP2X_TOUCH=(1L<<28) };
+        
+enum  { LCD = 0, PAL = 4, NTSC = 3 }; 
 
 typedef struct gp2x_font        { int x,y,w,wmask,h,fg,bg,solid; unsigned char *data; } gp2x_font;
 typedef struct gp2x_queue       { volatile unsigned long head, tail, items, max_items; unsigned long *place920t, *place940t; } gp2x_queue;
@@ -77,7 +85,8 @@ typedef struct gp2x_profiles    { char fname[56]; unsigned long calls, time; } g
 
 extern gp2x_video_layer         gp2x_video_RGB[1], gp2x_video_YUV[4];
 extern volatile unsigned long  *gp2x_dualcore_ram, *gp2x_memregl, *gp2x_blitter;
-extern unsigned long            gp2x_usbjoys;
+extern volatile unsigned short *gp2x_memregs;
+extern unsigned long            gp2x_usbjoys, gp2x_f200;
 extern gp2x_font                gp2x_default_font;
 //extern gp2x_profiles           *gp2x_profiles;
 
@@ -116,16 +125,20 @@ extern char          *gp2x_joystick_name(int);
 extern void           gp2x_joystick_wait(int, unsigned long);
 extern void           gp2x_joystick_scan(void);
 
-extern unsigned long  gp2x_timer_read(void);
+extern void           gp2x_touchscreen_update(void);
+
+/*writeme : raw -> timer, timer -> counter ? */
+extern void           gp2x_timer_reset(void);
 extern void           gp2x_timer_delay(unsigned long);
-extern unsigned long  gp2x_timer_raw(void);
+extern unsigned long  gp2x_timer_read_raw(void);
+extern unsigned long  gp2x_timer_read(void);
 extern unsigned long  gp2x_timer_raw_to_ticks(unsigned long);
 extern unsigned long  gp2x_timer_raw_one_second(void);
-extern void           gp2x_timer_init(int);
-extern void           gp2x_timer_start(int);
-extern void           gp2x_timer_stop(int);
-extern unsigned long  gp2x_timer_cpu_usage_relative(int, int);
-extern unsigned long  gp2x_timer_cpu_usage_per_frame(int);
+
+extern void               gp2x_counter_init(int);
+extern void               gp2x_counter_start(int);
+extern unsigned long long gp2x_counter_read(int);
+extern void               gp2x_counter_pause(int);
 
 extern gp2x_profiles *gp2x_profile_register(void);
 extern char          *gp2x_profile_analyze(void);
@@ -139,7 +152,7 @@ extern void           gp2x_sound_pause(int);
 extern void           gp2x_sound_stereo(int);
 extern void           gp2x_sound_3Dboost(int);
 extern void           gp2x_sound_attenuation(int);
-extern void           gp2x_sound_setintensity(int, int);
+extern void           gp2x_sound_setintensity(int, int, int);
 
 extern void           gp2x_i2c_write(unsigned char, unsigned char, unsigned char);
 extern unsigned char  gp2x_i2c_read(unsigned char, unsigned char);
@@ -169,9 +182,6 @@ extern void           gp2x_unimage(gp2x_rect *r);
 extern void           gp2x_init(int, int, int, int, int, int, int);
 extern void           gp2x_deinit(void);
 extern void           gp2x_reboot(void);
-
-
-
 
 
 /* for our minimal kernel module */
@@ -228,7 +238,65 @@ extern void           gp2x_reboot(void);
 
 
 
+//for blitter usage
 
+#define BLITTER_DST_BPP(r,a) gp2x_blitter[0x00 >> 2] = ((r)<<6)|((a)<<5)       //r=1 reads dest then ROP // a=0,1 (8,16 bpp)
+#define BLITTER_DST_PTR(a)   gp2x_blitter[0x04 >> 2] = (unsigned int)(a)       //manejar puntero de la forma &kk[offset]
+#define BLITTER_DST_BPL(a)   gp2x_blitter[0x08 >> 2] = (a)                     //bytes per line (320, 640, 1280...)
+
+#define BLITTER_SRC_BPP(r,a) gp2x_blitter[0x0C >> 2] = ((r)<<7)|((a)<<5)       //r=1 reads src after ROP // a=0,1 (8,16 bpp) 
+#define BLITTER_SRC_PTR(a)   gp2x_blitter[0x10 >> 2] = (unsigned int)(a)       //manejar puntero de la forma &kk[offset]
+#define BLITTER_SRC_BPL(a)   gp2x_blitter[0x14 >> 2] = (a)                     //bytes per line (320, 640, 1280...)
+
+#define BLITTER_DIM(w,h)     gp2x_blitter[0x2c >> 2] = ((h)<<16) | (w)
+
+#define NO_MIRROR 0
+#define MIRROR_W  1
+#define MIRROR_H  2
+
+#define ROP_P     (0xF0) /*PATERN*/
+#define ROP_S     (0xCC) /*SOURCE*/
+#define ROP_D     (0xAA) /*DESTINATION*/
+#define ROP_0     (0x00) /*FALSE*/
+#define ROP_1     (0xFF) /*TRUE*/
+
+#define BLITTER_ROP(transp_color,transp_on,fifoclear,ydirxdir,rop) gp2x_blitter[0x30 >> 2] = (((transp_color)<<16)|((transp_on)<<11)|((fifoclear)<<10)|((ydirxdir)<<8)|((rop)<<0))
+#define BLITTER_GO()         gp2x_blitter[0x34 >> 2] = 1
+
+#define BLITTER_FG(fg) gp2x_blitter[0x18 >> 2] = fg
+#define BLITTER_BG(bg) gp2x_blitter[0x1c >> 2] = bg
+
+#define BLITTER_PATTERN_FG_COLOR(fg565) gp2x_blitter[0x24 >> 2] = fg565
+#define BLITTER_PATTERN_BG_COLOR(bg565) gp2x_blitter[0x28 >> 2] = bg565
+
+#define BLITTER_PATTERN(mono, on, bpp, offset) gp2x_blitter[0x20 >> 2] = (((mono)<<6)|((on)<<5)|((bpp)<<3)|((offset)<<0)) 
+
+#define BLITTER_PATTERN_SET(x) gp2x_blitter[0x80 >> 2] = x
+
+
+#if 0
+ examples
+ for a custom ROP to do destination = (source & ~destination ) ^ ~pattern;
+ I'd use this: #define MYROP         ((ROP_S & ~ROP_D ) ^ ~ROP_P)
+ 
+ more examples using this:
+ PATCOPY	 : D = P 
+ PATINVERT	 : D = P ^ D 
+ DSTINVERT	 : D = ~D 
+ SRCCOPY	 : D = S 
+ NOTSRCCOPY	 : D = ~S 
+ SRCINVERT	 : D = S ^ D 
+ SRCAND		 : D = S & D 
+ SRCPAINT	 : D = S | D 
+ SRCERASE	 : D = S & ~D 
+ NOTSRCERASE : D = ~S & ~D 
+ MERGEPAINT	 : D = ~S | D 
+ MERGECOPY	 : D = S & P 
+ PATPAINT	 : D = D | P | ~S 
+#endif
+
+
+//for our dualcore solution
 
 #define GP2X_QUEUE_MAX_ITEMS           ((4096 - sizeof(gp2x_queue)) / 4) 
 #define GP2X_QUEUE_STRUCT_PTR          (0                  + 0x1000)
@@ -245,6 +313,7 @@ extern void           gp2x_reboot(void);
 #define gp2x_1stcore_data_ptr(v)       gp2x_1stcore_code_ptr((v)+0x1ff6000)
 
 #define gp2x_dualcore_data(v)          gp2x_1stcore_data((v)<<2)
+#define gp2x_dualcore_data_ptr(v)      gp2x_1stcore_data_ptr((v)<<2)
 
 #define gp2x_dualcore_declare_subprogram(name) extern void gp2x_dualcore_launch_## name ##_subprogram(void);
 #define gp2x_dualcore_launch_subprogram(name)  gp2x_dualcore_launch_## name ##_subprogram()
@@ -256,6 +325,9 @@ extern void           gp2x_reboot(void);
 
 #undef    gp2x_dualcore_data
 #define   gp2x_dualcore_data(v)         gp2x_2ndcore_data((v)<<2)
+
+#undef    gp2x_dualcore_data_ptr
+#define   gp2x_dualcore_data_ptr(v)     gp2x_2ndcore_data_ptr((v)<<2)
 
 #define   main                          gp2x_2ndcore_run
 

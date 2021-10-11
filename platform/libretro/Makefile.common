@@ -1,0 +1,18 @@
+LIBRETRO_DIR := $(CORE_DIR)/platform/libretro
+LIBRETRO_COMM_DIR := $(LIBRETRO_DIR)/libretro-common
+CORE_SRC_DIR := $(CORE_DIR)/common
+INCFLAGS := -I$(CORE_SRC_DIR) -I$(CORE_SRC_DIR)/m6502 -I$(LIBRETRO_DIR) -I$(LIBRETRO_COMM_DIR)/include
+
+ifneq (,$(findstring msvc2003,$(platform)))
+INCFLAGS += -I$(LIBRETRO_COMM_DIR)/include/compat/msvc
+endif
+
+SOURCES_C := \
+	$(LIBRETRO_DIR)/libretro.c \
+	$(CORE_SRC_DIR)/controls.c \
+	$(CORE_SRC_DIR)/gpu.c \
+	$(CORE_SRC_DIR)/memorymap.c \
+	$(CORE_SRC_DIR)/sound.c \
+	$(CORE_SRC_DIR)/timer.c \
+	$(CORE_SRC_DIR)/watara.c \
+	$(CORE_SRC_DIR)/m6502/m6502.c

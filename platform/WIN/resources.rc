@@ -3,30 +3,46 @@
 #include "resource.h"
 
 MENU_PRINCIPAL MENU 
-{
+BEGIN
     POPUP "&File"
-    {
-        MENUITEM "&Open",IDM_OPEN
-        MENUITEM "&Quit",IDM_QUIT
-    }
+    BEGIN
+        MENUITEM "&Open ROM...\tCtrl+O",IDM_OPEN
+        MENUITEM "&Reset\tCtrl+R", IDM_RESET
+        MENUITEM SEPARATOR
+        MENUITEM "&Load State\t2", IDM_LOAD
+        MENUITEM "&Save State\t1", IDM_SAVE
+        MENUITEM SEPARATOR
+        MENUITEM "E&xit\tAlt+F4",IDM_EXIT
+    END
     POPUP "&Options"
-    {
+    BEGIN
+        MENUITEM "&Fullscreen\tF11",IDM_FULLSCREEN
         POPUP "Screen Size"
-        {
-             MENUITEM "&1x",IDM_SIZE1 
+        BEGIN
+             MENUITEM "&1x",IDM_SIZE1
              MENUITEM "&2x",IDM_SIZE2
-             MENUITEM "&3x",IDM_SIZE3 
-             MENUITEM "&4x",IDM_SIZE4 
-        }
-    }
+             MENUITEM "&3x",IDM_SIZE3
+             MENUITEM "&4x",IDM_SIZE4
+             MENUITEM "&5x",IDM_SIZE5
+             MENUITEM "&6x",IDM_SIZE6
+        END
+        MENUITEM "&Control Config...\tCtrl+I",IDM_CONTROL_CONFIG
+    END
     POPUP "&Help"
-    {
+    BEGIN
         MENUITEM "&Website",IDM_WEBSITE
-        MENUITEM "&About",IDM_ABOUT
-    }
-}
+        MENUITEM SEPARATOR
+        MENUITEM "&About...",IDM_ABOUT
+    END
+END
 
 IDR_MAIN_ACCEL ACCELERATORS DISCARDABLE 
 BEGIN
-    "O",            IDM_OPEN,               VIRTKEY, CONTROL, NOINVERT
+    "O",            IDM_OPEN,               VIRTKEY, CONTROL
+    "R",            IDM_RESET,              VIRTKEY, CONTROL
+    "2",            IDM_LOAD,               VIRTKEY
+    "1",            IDM_SAVE,               VIRTKEY
+    VK_F11,         IDM_FULLSCREEN,         VIRTKEY
+    VK_RETURN,      IDM_FULLSCREEN,         VIRTKEY, ALT
+    "I",            IDM_CONTROL_CONFIG,     VIRTKEY, CONTROL
 END

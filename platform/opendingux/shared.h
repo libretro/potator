@@ -10,7 +10,9 @@
 #include <sys/types.h>
 
 #include <SDL/SDL.h>
-#include <SDL/SDL_mixer.h>
+
+// potator dependencies
+#include "../../common/supervision.h"
 
 // defines and macros
 #define MAX__PATH 1024
@@ -33,15 +35,7 @@
 typedef int bool;
 
 #define PIX_TO_RGB(fmt, r, g, b) (((r>>fmt->Rloss)<<fmt->Rshift)| ((g>>fmt->Gloss)<<fmt->Gshift)|((b>>fmt->Bloss)<<fmt->Bshift))
-
-// potator dependencies
-#include "../../common/sound.h"
-#include "../../common/memorymap.h"
-#include "../../common/supervision.h"
-#include "../../common/controls.h"
-#include "../../common/types.h"
-
-extern unsigned char controls_state;
+extern uint16 mapRGB(uint8 r, uint8 g, uint8 b);
 
 #define cartridge_IsLoaded() (strlen(gameName) != 0)
 
@@ -58,7 +52,7 @@ extern char gameName[MAX__PATH];
 extern unsigned int gameCRC;
 
 //typedef unsigned char byte;
-typedef unsigned short word;
+//typedef unsigned short word;
 typedef unsigned int uint;
 
 extern SDL_Surface* screen;						// Main program screen
@@ -84,12 +78,5 @@ extern void mainemuinit();
 extern void screen_showtopmenu(void);
 extern void print_string_video(int x, int y, const char *s);
 extern void gethomedir(char *dir, char* name);
-
-// sound
-extern void AWriteAudioData(unsigned int chan, unsigned int len, unsigned char *pWav);
-extern void Ainit(void);
-extern void Aclose(void);
-extern void APlayVoice(unsigned int chan, unsigned char *pWav, unsigned int loop);
-extern void AStopVoice(unsigned int chan, unsigned char *pWav);
 
 #endif
