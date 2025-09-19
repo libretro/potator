@@ -83,6 +83,8 @@ struct retro_core_option_definition option_defs_us[] = {
          { "ti_83",                  "TI-83" },
          { "travel_wood",            "Travel Wood" },
          { "virtual_boy",            "Virtual Boy" },
+         { "tvlink",                 "TV-Link" },
+         { "tvlink_inverted",        "TV-Link Inverted" },
          { NULL, NULL },
       },
       "default"

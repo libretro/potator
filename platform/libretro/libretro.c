@@ -85,6 +85,8 @@ struct sv_color_scheme sv_color_schemes[] = {
    { "ti_83",                  SV_COLOR_SCHEME_TI_83 },
    { "travel_wood",            SV_COLOR_SCHEME_TRAVEL_WOOD },
    { "virtual_boy",            SV_COLOR_SCHEME_VIRTUAL_BOY },
+   { "tvlink",                 SV_COLOR_SCHEME_TVLINK },
+   { "tvlink_inverted",        SV_COLOR_SCHEME_TVLINK_INVERTED },
    { NULL,                     0 },
 };
 
